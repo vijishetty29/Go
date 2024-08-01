@@ -3,19 +3,59 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	_ "github.com/go-sql-driver/mysql"
+	"log"
+
+	"github.com/go-sql-driver/mysql"
 )
 
+var db *sql.DB
+
 func main() {
-	db, err := sql.Open("mysql", "root:Admin@123@tcp(127.0.0.1:3306)/go")
+	//Data Source Name Properties
+	dsn := mysql.Config{
+		User:                 "root",
+		Passwd:               "Admin@123",
+		Net:                  "tcp",
+		Addr:                 "127.0.0.1:3306",
+		DBName:               "go",
+		AllowNativePasswords: true,
+	}
+
+	//Get db handle
+	var err error
+	db, err = sql.Open("mysql", dsn.FormatDSN())
 	if err != nil {
-		panic(err.Error())
+		log.Fatal(err)
 	}
 	defer db.Close()
-	insert, err := db.Query("INSERT INTO testtable VALUES('25')")
-	if err != nil {
-		panic(err.Error())
+
+	//Ping
+	pingErr := db.Ping()
+	if pingErr != nil {
+		log.Fatal(pingErr)
 	}
-	defer insert.Close()
-	fmt.Println("Added successfully!")
+
+	println("Connected %v", db)
+
+	user, err := addUser("Viji", "Shetty", "viji1@gmail.com", "test")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("Added successfully!", user)
+}
+
+func addUser(firstname string, lastname string, email string, password string) (int64, error) {
+	println("Connected %v", db)
+	result, err := db.Exec("INSERT INTO user (firstname, lastname, email, password) VALUES (?, ?, ?, ?)", firstname, lastname, email, password)
+	println("Connected! %v", db)
+	if err != nil {
+		return 0, fmt.Errorf("addActor: %v", err)
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		return 0, fmt.Errorf("addActor: %v", err)
+	}
+	return id, nil
+
 }
